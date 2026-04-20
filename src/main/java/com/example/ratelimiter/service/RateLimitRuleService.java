@@ -2,6 +2,7 @@ package com.example.ratelimiter.service;
 
 import com.example.ratelimiter.dto.CreateRuleRequest;
 import com.example.ratelimiter.dto.RuleResponse;
+import com.example.ratelimiter.dto.UpdateRuleRequest;
 import com.example.ratelimiter.entity.RateLimitRule;
 import com.example.ratelimiter.entity.WindowType;
 import com.example.ratelimiter.exception.RuleNotFoundException;
@@ -15,18 +16,21 @@ import java.util.stream.Collectors;
 
 @Service
 public class RateLimitRuleService {
-    private final RateLimitRuleRepository repo;
 
-    public RateLimitRuleService(RateLimitRuleRepository repo) {
+    private final RateLimitRuleRepository repo;
+    private final public RateLimitRuleService(RateLimitRuleRepository repo) {
         this.repo = repo;
     }
 
-    public RateLimitRule getRuleById(UUID ruleId) {
-        return repo.findById(ruleId).orElseThrow(() -> new RuleNotFoundException("rule not found"));
+    public RateLimitRule getRuleById(UUID tenantId, UUID ruleId) {
+        return repo.findByIdAndTenantId(ruleId, tenantId)
+                .orElseThrow(() -> new RuleNotFoundException("rule not found"));
     }
 
     public List<RuleResponse> listRules(UUID tenantId) {
-        return repo.findByTenantId(tenantId).stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByTenantId(tenantId).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
     public RuleResponse createRule(UUID tenantId, CreateRuleRequest req) {
@@ -36,7 +40,7 @@ public class RateLimitRuleService {
         rule.setName(req.getName());
         rule.setKeyType(req.getKeyType());
         rule.setWindowType(WindowType.token_bucket);
-        rule.setLimitValue(req.getLimitValue());
+        rule.setLimitValue(req.getCapacity());
         rule.setWindowSizeSeconds(req.getWindowSizeSeconds());
         rule.setEnabled(true);
         rule.setDescription(req.getDescription());
@@ -46,14 +50,30 @@ public class RateLimitRuleService {
         return toResponse(rule);
     }
 
-    private RuleResponse toResponse(RateLimitRule rule) {
+    public RuleResponse updateRule(UUID tenantId, UUID ruleId, UpdateRuleRequest req) {
+        RateLimitRule rule = getRuleById(tenantId, ruleId);
+        rule.setLimitValue(req.getCapacity());
+        rule.setWindowSizeSeconds(req.getWindowSizeSeconds());
+        rule.setUpdatedAt(LocalDateTime.now());
+        repo.save(rule);
+
+return toResponse(rule);
+    }
+
+    public void deleteRule(UUID tenantId, UUID ruleId) {
+        RateLimitRule rule = getRuleById(tenantId, ruleId);
+        repo.delete(rule);
+    }
+
+    public RuleResponse toResponse(RateLimitRule rule) {
         RuleResponse r = new RuleResponse();
         r.setId(rule.getId());
         r.setTenantId(rule.getTenantId());
         r.setName(rule.getName());
         r.setKeyType(rule.getKeyType());
+        r.setKeyValue(rule.getKeyValue());
         r.setWindowType(rule.getWindowType());
-        r.setLimitValue(rule.getLimitValue());
+        r.setCapacity(rule.getLimitValue());
         r.setWindowSizeSeconds(rule.getWindowSizeSeconds());
         r.setEnabled(rule.getEnabled());
         r.setDescription(rule.getDescription());
