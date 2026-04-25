@@ -1,11 +1,10 @@
 package com.example.ratelimiter.controller;
 
-import com.example.ratelimiter.dto.CreateRuleRequest;
-import com.example.ratelimiter.dto.RuleResponse;
+import com.example.ratelimiter.dto.*;
 import com.example.ratelimiter.service.RateLimitRuleService;
+import com.example.ratelimiter.service.RateLimiterService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.UUID;
 
@@ -19,12 +18,23 @@ public class RateLimitRuleController {
     }
 
     @PostMapping
-    public RuleResponse create(@RequestHeader("X-Tenant-Id") UUID tenantId, @Valid @RequestBody CreateRuleRequest req) {
-        return ruleService.createRule(tenantId, req);
+    public ApiWrapper<RuleResponse> create(@RequestHeader("X-Tenant-Id") UUID tenantId, @Valid @RequestBody CreateRuleRequest req) {
+        return new ApiWrapper<>(ruleService.createRule(tenantId, req));
     }
 
     @GetMapping
-    public List<RuleResponse> list(@RequestHeader("X-Tenant-Id") UUID tenantId) {
-        return ruleService.listRules(tenantId);
+    public ApiWrapper<List<RuleResponse>> list(@RequestHeader("X-Tenant-Id") UUID tenantId) {
+        return new ApiWrapper<>(ruleService.listRules(tenantId));
+    }
+
+    @PutMapping("/{ruleId}")
+    public ApiWrapper<RuleResponse> update(@RequestHeader("X-Tenant-Id") UUID tenantId, @PathVariable UUID ruleId, @Valid @RequestBody UpdateRuleRequest req) {
+        return new ApiWrapper<>(ruleService.updateRule(tenantId, ruleId, req));
+    }
+
+    @DeleteMapping("/{ruleId}")
+    public ApiWrapper<String> delete(@RequestHeader("X-Tenant-Id") UUID tenantId, @PathVariable UUID ruleId) {
+        ruleService.deleteRule(tenantId, ruleId);
+        return new ApiWrapper<>("deleted");
     }
 }

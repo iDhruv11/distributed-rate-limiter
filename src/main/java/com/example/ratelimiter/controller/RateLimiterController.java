@@ -1,5 +1,6 @@
 package com.example.ratelimiter.controller;
 
+import com.example.ratelimiter.dto.ApiWrapper;
 import com.example.ratelimiter.dto.CheckLimitRequest;
 import com.example.ratelimiter.dto.CheckLimitResponse;
 import com.example.ratelimiter.service.RateLimiterService;
@@ -17,7 +18,7 @@ public class RateLimiterController {
     }
 
     @PostMapping("/check")
-    public CheckLimitResponse check(@RequestHeader("X-Tenant-Id") UUID tenantId, @Valid @RequestBody CheckLimitRequest req) {
-        return rateLimiterService.checkLimit(tenantId, req);
+    public ApiWrapper<CheckLimitResponse> check(@RequestHeader("X-Tenant-Id") UUID tenantId, @Valid @RequestBody CheckLimitRequest req) {
+        return new ApiWrapper<>(rateLimiterService.checkLimit(tenantId, req));
     }
 }
