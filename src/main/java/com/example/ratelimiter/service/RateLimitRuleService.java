@@ -22,6 +22,7 @@ public class RateLimitRuleService {
         this.repo = repo;
     }
 
+    @org.springframework.cache.annotation.Cacheable("rules")
     public RateLimitRule getRuleById(UUID tenantId, UUID ruleId) {
         return repo.findByIdAndTenantId(ruleId, tenantId)
                 .orElseThrow(() -> new RuleNotFoundException("rule not found"));

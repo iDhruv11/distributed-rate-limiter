@@ -1,6 +1,41 @@
+server:
+  port: 8080
+
 spring:
+  application:
+    name: rate-limiter
   datasource:
     url: jdbc:postgresql://localhost:5432/ratelimiter
     username: ratelimiter
     password: ratelimiter
-# ratelimiter.fail-open: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+ratelimiter:
+  redis:
+    fail-mode: open
+  demo:
+    name: acme-demo
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      redis:
+        registerHealthIndicator: true
+        slidingWindowSize: 5
+        minimumNumberOfCalls: 3
+        permittedNumberOfCallsInHalfOpenState: 2
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+
+springdoc:
+  api-docs:
+    path: /api-docs

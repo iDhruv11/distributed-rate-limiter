@@ -17,6 +17,11 @@ public class RateLimiterController {
         this.rateLimiterService = rateLimiterService;
     }
 
+    @GetMapping("/{ruleId}/status")
+    public ApiWrapper<CheckLimitResponse> status(@RequestHeader("X-Tenant-Id") UUID tenantId, @PathVariable UUID ruleId) {
+        return new ApiWrapper<>(rateLimiterService.getQuotaRemaining(tenantId, ruleId));
+    }
+
     @PostMapping("/check")
     public ApiWrapper<CheckLimitResponse> check(@RequestHeader("X-Tenant-Id") UUID tenantId, @Valid @RequestBody CheckLimitRequest req) {
         return new ApiWrapper<>(rateLimiterService.checkLimit(tenantId, req));
