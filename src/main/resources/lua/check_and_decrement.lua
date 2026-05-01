@@ -1,31 +1,52 @@
 local key = KEYS[1]
-local limit = tonumber(ARGV[1])
-local window_size = tonumber(ARGV[2])
-local now = tonumber(ARGV[3])
+local now = tonumber(ARGV[1])
 
 local state = redis.call('GET', key)
-local quota_data = {}
+local bucket = {}
 
 if not state then
-  quota_data.current_quota = limit - 1
-  quota_data.reset_at = now + window_size
-  quota_data.allowed = 1
+  local capacity = tonumber(ARGV[2])
+  local refill_rate = tonumber(ARGV[3])
+  local window_size = tonumber(ARGV[4])
+  local key_type = ARGV[5]
+  local key_value = ARGV[6]
+
+  bucket.tokens = capacity - 1
+  bucket.last_refill = now
+  bucket.capacity = capacity
+  bucket.refill_rate = refill_rate
+  bucket.window_size_seconds = window_size
+  bucket.key_type = key_type
+  bucket.key_value = key_value
+  bucket.allowed = 1
 else
-  quota_data = cjson.decode(state)
-  if now >= quota_data.reset_at then
-    quota_data.current_quota = limit - 1
-    quota_data.reset_at = now + window_size
-    quota_data.allowed = 1
-  else
-    if quota_data.current_quota > 0 then
-      quota_data.current_quota = quota_data.current_quota - 1
-      quota_data.allowed = 1
-    else
-      quota_data.allowed = 0
-    end
+  bucket = cjson.decode(state)
+  local capacity = bucket.capacity
+  local refill_rate = bucket.refill_rate
+  local elapsed = now - bucket.last_refill
+  if elapsed < 0 then
+    elapsed = 0
   end
+  local tokens = bucket.tokens + (elapsed * refill_rate)
+  if tokens > capacity then
+    tokens = capacity
+  end
+  if tokens >= 1 then
+    tokens = tokens - 1
+    bucket.allowed = 1
+  else
+    bucket.allowed = 0
+  end
+  bucket.tokens = tokens
+  bucket.last_refill = now
 end
 
-local ttl = quota_data.reset_at - now + 1
-redis.call('SETEX', key, ttl, cjson.encode(quota_data))
-return cjson.encode(quota_data)
+bucket.algorithm = "token_bucket"
+
+local ttl = math.ceil(bucket.capacity / bucket.refill_rate) + 120
+if ttl < 60 then
+  ttl = 60
+end
+redis.call('SETEX', key, ttl, cjson.encode(bucket))
+
+return cjson.encode(bucket)
