@@ -18,3 +18,20 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  rate-limiter:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ratelimiter
+      SPRING_DATASOURCE_USERNAME: ratelimiter
+      SPRING_DATASOURCE_PASSWORD: ratelimiter
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      RATELIMITER_REDIS_FAIL_MODE: open
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
