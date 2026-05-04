@@ -22,12 +22,7 @@ public class RateLimitRuleController {
         return new ApiWrapper<>(ruleService.createRule(tenantId, req));
     }
 
-    @GetMapping
-    public ApiWrapper<List<RuleResponse>> list(@RequestHeader("X-Tenant-Id") UUID tenantId) {
-        return new ApiWrapper<>(ruleService.listRules(tenantId));
-    }
-
-    @PutMapping("/{ruleId}")
+@PutMapping("/{ruleId}")
     public ApiWrapper<RuleResponse> update(@RequestHeader("X-Tenant-Id") UUID tenantId, @PathVariable UUID ruleId, @Valid @RequestBody UpdateRuleRequest req) {
         return new ApiWrapper<>(ruleService.updateRule(tenantId, ruleId, req));
     }

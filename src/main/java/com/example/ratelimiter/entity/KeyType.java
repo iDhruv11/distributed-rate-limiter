@@ -1,7 +1,8 @@
 package com.example.ratelimiter.entity;
 
 public enum KeyType {
-    user_id,
+    email,
+    int_id,
     api_key,
     ip_address
 }
