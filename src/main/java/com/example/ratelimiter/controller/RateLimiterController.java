@@ -24,6 +24,6 @@ public class RateLimiterController {
 
     @PostMapping("/check")
     public ApiWrapper<CheckLimitResponse> check(@RequestHeader("X-Tenant-Id") UUID tenantId, @Valid @RequestBody CheckLimitRequest req) {
-        return new ApiWrapper<>(rateLimiterService.checkLimit(tenantId, req));
+        return new ApiWrapper<>(rateLimiterService.checkLimit(tenantId, req.getRuleId()));
     }
 }
