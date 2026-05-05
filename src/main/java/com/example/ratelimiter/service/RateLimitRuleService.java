@@ -18,18 +18,20 @@ import java.util.stream.Collectors;
 public class RateLimitRuleService {
 
     private final RateLimitRuleRepository repo;
-    private final public RateLimitRuleService(RateLimitRuleRepository repo) {
+    private final RedisLuaScriptService redisLua;
+
+    public RateLimitRuleService(RateLimitRuleRepository repo, RedisLuaScriptService redisLua) {
         this.repo = repo;
+        this.redisLua = redisLua;
     }
 
-    @org.springframework.cache.annotation.Cacheable("rules")
     public RateLimitRule getRuleById(UUID tenantId, UUID ruleId) {
         return repo.findByIdAndTenantId(ruleId, tenantId)
                 .orElseThrow(() -> new RuleNotFoundException("rule not found"));
     }
 
-    public List<RuleResponse> listRules(UUID tenantId) {
-        return repo.findByTenantId(tenantId).stream()
+    public List<RuleResponse> listDemoRules(UUID tenantId, String name) {
+        return repo.findByTenantIdAndName(tenantId, name).stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
@@ -40,6 +42,7 @@ public class RateLimitRuleService {
         rule.setTenantId(tenantId);
         rule.setName(req.getName());
         rule.setKeyType(req.getKeyType());
+        rule.setKeyValue(req.getKeyValue());
         rule.setWindowType(WindowType.token_bucket);
         rule.setLimitValue(req.getCapacity());
         rule.setWindowSizeSeconds(req.getWindowSizeSeconds());
@@ -58,11 +61,16 @@ public class RateLimitRuleService {
         rule.setUpdatedAt(LocalDateTime.now());
         repo.save(rule);
 
-return toResponse(rule);
+        String key = redisLua.buildKey(tenantId, ruleId);
+        long now = System.currentTimeMillis() / 1000;
+        redisLua.initFullState(key, rule, now);
+
+        return toResponse(rule);
     }
 
     public void deleteRule(UUID tenantId, UUID ruleId) {
         RateLimitRule rule = getRuleById(tenantId, ruleId);
+        redisLua.deleteKey(redisLua.buildKey(tenantId, ruleId));
         repo.delete(rule);
     }
 
