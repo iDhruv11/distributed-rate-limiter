@@ -94,6 +94,7 @@ public class RateLimiterService {
         ruleService.getRuleById(tenantId, ruleId);
         redisLua.deleteKey(redisLua.buildKey(tenantId, ruleId));
 
+        long start = System.currentTimeMillis();
         ExecutorService pool = Executors.newFixedThreadPool(100);
         List<Future<Boolean>> futures = new ArrayList<>();
 
@@ -119,6 +120,7 @@ public class RateLimiterService {
         ConcurrencyResult result = new ConcurrencyResult();
         result.setAllowed(allowed);
         result.setDenied(denied);
+        result.setTookMs(System.currentTimeMillis() - start);
         return result;
     }
 

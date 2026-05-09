@@ -4,6 +4,7 @@ public class ConcurrencyResult {
 
     private int allowed;
     private int denied;
+    private long tookMs;
 
     public int getAllowed() {
         return allowed;
@@ -19,5 +20,12 @@ public class ConcurrencyResult {
 
     public void setDenied(int denied) {
         this.denied = denied;
+    }
+
+    public long getTookMs() {
+        return tookMs;
+    }
+    public void setTookMs(long tookMs) {
+        this.tookMs = tookMs;
     }
 }

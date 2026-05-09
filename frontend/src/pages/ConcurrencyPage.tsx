@@ -39,7 +39,7 @@ export default function ConcurrencyPage() {
         <Button onClick={run} disabled={loading}>{loading ? 'Running...' : 'Run 100 Concurrent Requests'}</Button>
       </div>
       {result && (
-        <div className="mt-8 grid grid-cols-2 gap-4 text-center">
+        <div className="mt-8 grid grid-cols-3 gap-4 text-center">
           <div className="rounded-xl border p-4">
             <p className="text-2xl font-bold">{result.allowed}</p>
             <p className="text-xs uppercase text-neutral-500">Allowed</p>
@@ -48,7 +48,12 @@ export default function ConcurrencyPage() {
             <p className="text-2xl font-bold">{result.denied}</p>
             <p className="text-xs uppercase text-neutral-500">Denied</p>
           </div>
+          <div className="rounded-xl border p-4">
+            <p className="text-2xl font-bold">{result.tookMs}ms</p>
+            <p className="text-xs uppercase text-neutral-500">Time</p>
+          </div>
         </div>
+        
       )}
     </Card>
   )

@@ -43,6 +43,7 @@ export type CheckResult = {
 export type ConcurrencyResult = {
   allowed: number
   denied: number
+  tookMs: number
 }
 
 export type RedisState = {
