@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Button } from '../components/ui/button'
 import { Card, CardTitle, Label } from '../components/ui/card'
 import { Input } from '../components/ui/input'
+import RedisBadge from '../components/RedisBadge'
 import { api, CheckResult } from '../lib/api'
+import { showVal } from '../lib/format'
 import { loadRuleId, saveRuleId } from '../lib/constants'
 
 export default function LiveTestPage() {
@@ -37,7 +39,11 @@ export default function LiveTestPage() {
 
   return (
     <Card>
-      <CardTitle>Live Rate Limiter Demo</CardTitle>
+      <div className="flex items-center justify-between gap-4">
+        <CardTitle>Live Rate Limiter Demo</CardTitle>
+        <RedisBadge />
+      </div>
+
       <div className="mt-4 max-w-md space-y-4">
         <div>
           <Label>Rule ID</Label>
@@ -53,8 +59,8 @@ export default function LiveTestPage() {
       {last && (
         <div className="mt-8 rounded-xl border border-neutral-200 p-4 font-mono text-sm">
           <p>Allowed: {String(last.allowed)}</p>
-          <p>Remaining Tokens: {last.remainingTokens ?? last.remainingQuota}</p>
-          <p>Refill Rate: {last.refillRate?.toFixed(2)}/sec</p>
+          <p>Remaining Tokens: {last.initialized === false ? 'n/a' : showVal(last.remainingTokens ?? last.remainingQuota)}</p>
+          <p>Refill Rate: {last.initialized === false ? 'n/a' : showVal(last.refillRate, '/sec')}</p>
         </div>
       )}
     </Card>

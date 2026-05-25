@@ -48,11 +48,14 @@ export type ConcurrencyResult = {
 
 export type RedisState = {
   allowed: boolean
-  remainingTokens?: number
-  refillRate?: number
-  windowSeconds?: number
-  resetAt?: number
-  initialized?: boolean
+  remainingTokens?: number | null
+  remainingQuota?: number | null
+  refillRate?: number | null
+  windowSeconds?: number | null
+  resetAt?: number | null
+  initialized?: boolean | null
+  reason?: string | null
+  retryAfterSeconds?: number | null
 }
 
 export const api = {
@@ -66,4 +69,6 @@ export const api = {
   updateRule: (ruleId: string, body: object) =>
     call<Rule>(`/api/v1/limits/${ruleId}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteRule: (ruleId: string) => call<string>(`/api/v1/limits/${ruleId}`, { method: 'DELETE' }),
+  redisHealth: () => call<{ up: boolean }>('/demo/redis-health'),
+
 }

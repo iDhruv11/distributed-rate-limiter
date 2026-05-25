@@ -2,7 +2,14 @@ import { useEffect, useState } from 'react'
 import { Button } from '../components/ui/button'
 import { Card, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
+import RedisBadge from '../components/RedisBadge'
+
 import { api, Rule } from '../lib/api'
+
+function isRedisErr(msg: string) {
+  return msg.toLowerCase().includes('redis') || msg.toLowerCase().includes('unavailable') || msg.toLowerCase().includes('503')
+}
+
 
 export default function ManageRulesPage() {
   const [rules, setRules] = useState<Rule[]>([])
@@ -10,6 +17,9 @@ export default function ManageRulesPage() {
   const [cap, setCap] = useState('')
   const [win, setWin] = useState('')
   const [err, setErr] = useState('')
+  
+  const [redisErr, setRedisErr] = useState('')
+
 
   const load = async () => {
     try {
@@ -25,25 +35,52 @@ export default function ManageRulesPage() {
     setEditId(r.id)
     setCap(String(r.capacity))
     setWin(String(r.windowSizeSeconds))
+    setRedisErr('')
+
   }
 
   const save = async () => {
     if (!editId) return
-    await api.updateRule(editId, { capacity: Number(cap), windowSizeSeconds: Number(win) })
-    setEditId(null)
-    load()
+    setRedisErr('')
+    try {
+      await api.updateRule(editId, { capacity: Number(cap), windowSizeSeconds: Number(win) })
+      setEditId(null)
+      load()
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'save failed'
+      if (isRedisErr(msg)) {
+        setRedisErr('one or more resources are unreachable')
+      } else {
+        setErr(msg)
+      }
+    }
   }
 
   const remove = async (id: string) => {
-    await api.deleteRule(id)
-    load()
+    setRedisErr('')
+    try {
+      await api.deleteRule(id)
+      load()
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'delete failed'
+      if (isRedisErr(msg)) {
+        setRedisErr('one or more resources are unreachable')
+      } else {
+        setErr(msg)
+      }
+    }
   }
 
   return (
     <Card>
-      <CardTitle>Manage Rules</CardTitle>
+      <div className="flex items-center justify-between gap-4">
+        <CardTitle>Manage Rules</CardTitle>
+        <RedisBadge />
+      </div>
+
       <p className="mb-4 text-sm text-neutral-500">acme-demo rules only</p>
       {err && <p className="text-sm text-red-600">{err}</p>}
+      {redisErr && <p className="mb-2 text-sm text-red-600">{redisErr}</p>}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>

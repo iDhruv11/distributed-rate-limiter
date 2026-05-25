@@ -59,11 +59,11 @@ public class RateLimitRuleService {
         rule.setLimitValue(req.getCapacity());
         rule.setWindowSizeSeconds(req.getWindowSizeSeconds());
         rule.setUpdatedAt(LocalDateTime.now());
-        repo.save(rule);
-
+        
         String key = redisLua.buildKey(tenantId, ruleId);
         long now = System.currentTimeMillis() / 1000;
         redisLua.initFullState(key, rule, now);
+        repo.save(rule);
 
         return toResponse(rule);
     }

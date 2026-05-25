@@ -40,6 +40,15 @@ public class RedisLuaScriptService {
     public String buildKey(UUID tenantId, UUID ruleId) {
         return "rate_limit:" + tenantId + ":" + ruleId;
     }
+    
+    public boolean ping() {
+        try {
+            String pong = redis.getConnectionFactory().getConnection().ping();
+            return "PONG".equalsIgnoreCase(pong);
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     public boolean hasState(String redisKey) {
         return Boolean.TRUE.equals(redis.hasKey(redisKey));
@@ -113,19 +122,19 @@ public class RedisLuaScriptService {
         }
     }
 
-    private QuotaState checkFallback(String redisKey, RateLimitRule rule, long now, Throwable t) {
+    QuotaState checkFallback(String redisKey, RateLimitRule rule, long now, Throwable t) {
         throw new RedisUnavailableException("circuit open or redis down", t);
     }
 
-    private QuotaState initFallback(String redisKey, RateLimitRule rule, long now, Throwable t) {
+    QuotaState initFallback(String redisKey, RateLimitRule rule, long now, Throwable t) {
         throw new RedisUnavailableException("circuit open or redis down", t);
     }
 
-    private QuotaState readFallback(String redisKey, Throwable t) {
+    QuotaState readFallback(String redisKey, Throwable t) {
         throw new RedisUnavailableException("circuit open or redis down", t);
     }
 
-    private void deleteFallback(String redisKey, Throwable t) {
+    void deleteFallback(String redisKey, Throwable t) {
         throw new RedisUnavailableException("circuit open or redis down", t);
     }
 }

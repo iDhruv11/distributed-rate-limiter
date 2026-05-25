@@ -47,7 +47,7 @@ public class RateLimiterService {
             QuotaState state = redisLua.executeCheckAndDecrement(redisKey, rule, now);
             return buildResponse(state, rule, now, true);
         } catch (RedisUnavailableException ex) {
-            return handleRedisFailure(rule, now, ex);
+            return handleRedisFailure(now, ex);
         }
     }
 
@@ -74,7 +74,7 @@ public class RateLimiterService {
             resp.setResetAt(tokenBucket.estimateFullAt(tokens, state.getCapacity(), state.getRefillRate(), now));
             return resp;
         } catch (RedisUnavailableException ex) {
-            throw ex;
+            return handleRedisFailure(now, ex);
         }
     }
 
@@ -92,7 +92,6 @@ public class RateLimiterService {
 
     public ConcurrencyResult runConcurrencyDemo(UUID tenantId, UUID ruleId) {
         ruleService.getRuleById(tenantId, ruleId);
-        redisLua.deleteKey(redisLua.buildKey(tenantId, ruleId));
 
         long start = System.currentTimeMillis();
         ExecutorService pool = Executors.newFixedThreadPool(100);
@@ -145,17 +144,15 @@ public class RateLimiterService {
         return resp;
     }
 
-    private CheckLimitResponse handleRedisFailure(RateLimitRule rule, long now, RedisUnavailableException ex) {
-        if ("closed".equalsIgnoreCase(failMode)) {
-            throw ex;
-        }
-        CheckLimitResponse resp = new CheckLimitResponse();
-        resp.setAllowed(true);
-        resp.setRemainingQuota(rule.getLimitValue().longValue());
-        resp.setRefillRate(tokenBucket.getRefillRate(rule));
-        resp.setResetAt(now);
-        resp.setWindowSeconds(rule.getWindowSizeSeconds());
-        resp.setInitialized(false);
-        return resp;
+     private CheckLimitResponse handleRedisFailure(long now, RedisUnavailableException ex) {
+    CheckLimitResponse resp = new CheckLimitResponse();
+    resp.setInitialized(false);
+    if ("closed".equalsIgnoreCase(failMode)) {
+      resp.setAllowed(false);
+      resp.setReason("redis_unavailable");
+    } else {
+      resp.setAllowed(true);
     }
+    return resp;
+  }
 }

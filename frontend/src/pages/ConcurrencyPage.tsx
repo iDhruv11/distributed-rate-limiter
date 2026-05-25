@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button } from '../components/ui/button'
 import { Card, CardTitle, Label } from '../components/ui/card'
 import { Input } from '../components/ui/input'
+import RedisBadge from '../components/RedisBadge'
 import { api, ConcurrencyResult } from '../lib/api'
 import { loadRuleId, saveRuleId } from '../lib/constants'
 
@@ -28,7 +29,11 @@ export default function ConcurrencyPage() {
 
   return (
     <Card className="border-2 border-black">
-      <CardTitle>Concurrency Demo</CardTitle>
+      <div className="flex items-center justify-between gap-4">
+        <CardTitle>Concurrency Demo</CardTitle>
+        <RedisBadge />
+      </div>
+
       <p className="mb-4 text-sm text-neutral-600">100 threads · same rule · atomic Lua</p>
       <div className="max-w-md space-y-4">
         <div>
