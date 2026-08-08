@@ -12,6 +12,11 @@ A standalone rate-limiting service that multiple backend apps call instead of ro
 
 ---
 
+<p align="center">
+  <img src="assets/rate-limiter-screenshot.png" alt="Distributed Rate Limiter UI" width="900">
+</p>
+
+
 ## Who is this for?
 
 Backend teams that need centralized rate limiting across services — per user, API key, IP, email. Instead of every app maintaining its own counters (and getting them wrong under concurrency), they hit one service.
@@ -56,23 +61,9 @@ No auth/JWT/onboarding in this project — tenants are identified purely by the 
 
 ## Architecture
 
-```
-  Client apps                Demo UI (React)
-       |                           |
-       +-----------+---------------+
-                   |
-                   v
-         Spring Boot API (Java 17)
-                   |
-         +---------+---------+
-         |                   |
-         v                   v
-    PostgreSQL             Redis
-    (rule config)     (live quota state)
-                           |
-                      Lua scripts
-                   (atomic read/refill/decrement)
-```
+<p align="center">
+  <img src="assets/rate-limiter-architecture.png" alt="Distributed Rate Limiter Architecture" width="900">
+</p>
 
 **Split of responsibility:**
 - **PostgreSQL** — rule definitions only (capacity, window, key type, enabled flag). Not touched on every check.
