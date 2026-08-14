@@ -1,74 +1,55 @@
-import { DEMO_TENANT } from './constants'
-
-type ApiResp<T> = { data: T; timestamp: string; requestId: string }
+import { TENANT } from './constants'
 
 async function call<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const res = await fetch(path, {
     ...opts,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Tenant-Id': DEMO_TENANT,
-      ...(opts.headers || {}),
-    },
+    headers: { 'Content-Type': 'application/json', 'X-Tenant-Id': TENANT },
   })
-  const body = await res.json()
-  if (!res.ok) {
-    const msg = body?.data?.error || body?.error || `request failed (${res.status})`
-    throw new Error(msg)
-  }
-  return (body as ApiResp<T>).data
+  if (res.status === 204) return undefined as T
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body.error || `request failed (${res.status})`)
+  return body as T
 }
 
 export type Rule = {
   id: string
-  tenantId: string
   name: string
   capacity: number
-  windowSizeSeconds: number
-  keyType: string
-  keyValue: string
+  windowSeconds: number
   createdAt: string
 }
 
+// remaining is null when Redis was down and the service failed open/closed.
 export type CheckResult = {
   allowed: boolean
-  remainingTokens?: number
-  remainingQuota?: number
-  refillRate?: number
-  reason?: string
-  retryAfterSeconds?: number
-  initialized?: boolean
+  remaining: number | null
+  retryAfterMs: number
+  redisDown: boolean
 }
 
 export type ConcurrencyResult = {
+  requests: number
   allowed: number
   denied: number
   tookMs: number
+  p50Ms: number
+  p95Ms: number
+  p99Ms: number
+  maxMs: number
 }
 
-export type RedisState = {
-  allowed: boolean
-  remainingTokens?: number | null
-  remainingQuota?: number | null
-  refillRate?: number | null
-  windowSeconds?: number | null
-  resetAt?: number | null
-  initialized?: boolean | null
-  reason?: string | null
-  retryAfterSeconds?: number | null
-}
+type RuleBody = { name: string; capacity: number; windowSeconds: number }
 
 export const api = {
-  createRule: (body: object) => call<Rule>('/api/v1/limits', { method: 'POST', body: JSON.stringify(body) }),
-  check: (ruleId: string) =>
-    call<CheckResult>('/api/v1/limits/check', { method: 'POST', body: JSON.stringify({ ruleId }) }),
-  status: (ruleId: string) => call<RedisState>(`/api/v1/limits/${ruleId}/status`),
-  reset: (ruleId: string) => call<string>(`/api/v1/rules/${ruleId}/reset`, { method: 'POST', body: '{}' }),
-  concurrency: (ruleId: string) => call<ConcurrencyResult>(`/demo/concurrency/${ruleId}`, { method: 'POST', body: '{}' }),
-  listRules: () => call<Rule[]>('/demo/rules'),
-  updateRule: (ruleId: string, body: object) =>
+  listRules: () => call<Rule[]>('/api/v1/limits'),
+  createRule: (body: RuleBody) => call<Rule>('/api/v1/limits', { method: 'POST', body: JSON.stringify(body) }),
+  updateRule: (ruleId: string, body: RuleBody) =>
     call<Rule>(`/api/v1/limits/${ruleId}`, { method: 'PUT', body: JSON.stringify(body) }),
-  deleteRule: (ruleId: string) => call<string>(`/api/v1/limits/${ruleId}`, { method: 'DELETE' }),
-  redisHealth: () => call<{ up: boolean }>('/demo/redis-health'),
-
+  deleteRule: (ruleId: string) => call<void>(`/api/v1/limits/${ruleId}`, { method: 'DELETE' }),
+  check: (ruleId: string, key: string) =>
+    call<CheckResult>('/api/v1/limits/check', { method: 'POST', body: JSON.stringify({ ruleId, key }) }),
+  reset: (ruleId: string, key: string) =>
+    call<void>(`/api/v1/limits/${ruleId}/reset?key=${encodeURIComponent(key)}`, { method: 'POST' }),
+  concurrency: (ruleId: string, requests: number) =>
+    call<ConcurrencyResult>(`/demo/concurrency/${ruleId}?requests=${requests}`, { method: 'POST' }),
 }

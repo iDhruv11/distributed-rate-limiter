@@ -1,43 +1,44 @@
 server:
   port: 8080
 
+# Local dev defaults. Docker compose overrides these with environment variables.
 spring:
   application:
     name: rate-limiter
   datasource:
     url: jdbc:postgresql://localhost:5432/ratelimiter
     username: ratelimiter
-    password: ratelimiter
+    password: ${POSTGRES_PASSWORD:ratelimiter}
+  # Runs schema.sql on every startup (it only creates the table if it's missing).
+  sql:
+    init:
+      mode: always
   jpa:
     hibernate:
       ddl-auto: validate
     open-in-view: false
-  flyway:
-    enabled: true
   data:
     redis:
       host: localhost
       port: 6379
-      timeout: 2s
-      connect-timeout: 2s
-
+      # A rate limiter should answer fast or not at all; don't hang requests on a sick Redis.
+      timeout: 300ms
+      connect-timeout: 300ms
 
 ratelimiter:
-  redis:
-    fail-mode: open
-  demo:
-    name: acme-demo
+  # true: allow requests while Redis is down. false: deny them.
+  fail-open: true
 
+# After 3+ of the last 5 Redis calls fail, stop calling Redis for 5 seconds and answer straight from the fallback.
 resilience4j:
   circuitbreaker:
     instances:
       redis:
-        registerHealthIndicator: true
         slidingWindowSize: 5
         minimumNumberOfCalls: 3
-        permittedNumberOfCallsInHalfOpenState: 2
-        waitDurationInOpenState: 5s
         failureRateThreshold: 50
+        waitDurationInOpenState: 5s
+        permittedNumberOfCallsInHalfOpenState: 2
 
 springdoc:
   api-docs:

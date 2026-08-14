@@ -1,10 +1,52 @@
 services:
+  rate-limiter:
+    build: .
+    ports:
+      - "127.0.0.1:8082:8080"
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ratelimiter
+      SPRING_DATASOURCE_USERNAME: ratelimiter
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-ratelimiter}
+
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+
+      RATELIMITER_FAIL_OPEN: ${RATELIMITER_FAIL_OPEN:-true}
+
+      JAVA_TOOL_OPTIONS: "-XX:+UseSerialGC -Xss256k -XX:MaxRAMPercentage=60.0"
+
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+      redis:
+        condition: service_healthy
+
   postgres:
     image: postgres:16-alpine
+
     environment:
       POSTGRES_DB: ratelimiter
       POSTGRES_USER: ratelimiter
-      POSTGRES_PASSWORD: ratelimiter
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ratelimiter}
+
+    command: >
+      postgres
+      -c shared_buffers=32MB
+      -c max_connections=20
+      -c work_mem=2MB
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ratelimiter"]
       interval: 5s
@@ -13,25 +55,21 @@ services:
 
   redis:
     image: redis:7-alpine
+
+    # noeviction: when memory is full Redis errors instead of silently dropping buckets (which would reset limits).
+    # Buckets expire on their own once they'd be full again anyway.
+    command: >
+      redis-server
+      --maxmemory 64mb
+      --maxmemory-policy noeviction
+
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
-
-  rate-limiter:
-    build: .
-    ports:
-      - "8080:8080"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ratelimiter
-      SPRING_DATASOURCE_USERNAME: ratelimiter
-      SPRING_DATASOURCE_PASSWORD: ratelimiter
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      RATELIMITER_REDIS_FAIL_MODE: open
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy

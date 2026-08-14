@@ -1,4 +1,4 @@
-package com.example.ratelimiter.config;
+package com.ratelimiter;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
